@@ -922,8 +922,8 @@ def pan():
     r = 0
     label = 0
     t1, t2 = 0, 0
-    pos1 = '/var/www/myapp/src/law/pan/panyo_'
-    pos2 = '/var/www/myapp/src/law/pan/panyo_'
+    pos1 = '/var/www/myapp/src/law/pan/pansix_'
+    pos2 = '/var/www/myapp/src/law/pan/pansio_'
     pan_list = []
     if request.method == 'POST':
         query = request.form['input']
@@ -933,8 +933,8 @@ def pan():
         r, label = predict(query)
         q = tokenize_sentence(query)
 
-        pan = pd.read_pickle(pos2 + str(label+1) + '_kk.pkl')
-        pan2 = pd.read_pickle(pos1 + str(label+1) + '.pkl')
+        pan = pd.read_csv(pos1 + str(label+1) + '.csv', encoding='CP949')
+        pan2 = pd.read_csv(pos2 + str(label+1) + '.csv', encoding='CP949')
 
         nums = list(pan['number'])
         documents = list(pan['contents'])
