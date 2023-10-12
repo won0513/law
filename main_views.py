@@ -195,7 +195,7 @@ def pan_api_three():
     w = parse.quote(word)
     t = 1
     res = '사건명'
-    url = u1 '&query=' + w
+    url = u1 + '&query=' + w
     try:
         xml = REQ.urlopen(url).read()
         soup = BeautifulSoup(xml, "lxml-xml")
