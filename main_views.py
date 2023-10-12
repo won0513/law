@@ -372,7 +372,7 @@ def generate_home_contents(c):
     article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
     a_list = []
     for i in range(len(article)):
-        a_list.append([article['title'], article['contents']])
+        a_list.append([article['title'][i], article['contents'][i]])
     prece_list = pan_api_three(c)
     data['article'] = a_list
     data['precedent'] = prece_list
