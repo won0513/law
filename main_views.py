@@ -220,7 +220,7 @@ def pan_api_three(word):
                             continue
                     except:
                         continue
-                    prece_list.append([nums[k].text, r])
+                    prece_list.append([nums[k].text, r.text])
         except:
             continue
     return prece_list
@@ -367,7 +367,7 @@ def productSearch():
     word = request.args.get('word', type=str)
     return jsonify({ "id" : 2, "name" : word})
 
-@bp.route('/api/homeContents/<string:c>/')
+@bp.route('/api/homeContents/<string:c>')
 def generate_home_contents(c):
     data = {}
     article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
