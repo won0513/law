@@ -223,6 +223,7 @@ def pan_api_three(word):
                     prece_list.append([nums[k].text, r])
         except:
             continue
+    return prece_list
             
 @bp.route('/',  methods=('GET', 'POST'))
 def index():
