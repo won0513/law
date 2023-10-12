@@ -372,12 +372,13 @@ def generate_home_contents(c):
     article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
     a_list = []
     for i in range(len(article)):
-        a_list.append([article['title'], article['contents'])
+        a_list.append([article['title'], article['contents']])
     prece_list = pan_api_three(c)
     data['article'] = a_list
     data['precedent'] = prece_list
     return json.dumps(data, ensure_ascii=False)
 @bp.route('/api/precedent/<string:c1>/<string:c2>')
+
 def generate_pan_list(c1, c2):
     c_list = ['총칙', '물권', '채권', '친족', '상속']
     c_list2 = {'총칙': ['통칙', '인', '법인', '물건', '법률행위', '기간', '소멸시효'],
