@@ -188,6 +188,38 @@ def pan_api_two(word, n_list, opt):
     print(prece_list)
     return prece_list
 
+def pan_api_three():
+    u1 = ('http://www.law.go.kr/DRF/lawSearch.do?OC=jw01012&search=2&target=prec&type=XML&display=30&page=1')
+    u2 = ('http://www.law.go.kr/DRF/lawService.do?OC=jw01012&type=XML&target=prec&ID=')
+    prece_list = []
+    w = parse.quote(word)
+    t = 1
+    res = '사건명'
+    url = u1 '&query=' + w
+    try:
+        xml = REQ.urlopen(url).read()
+        soup = BeautifulSoup(xml, "lxml-xml")
+        nums = soup.select('판례일련번호')
+        kinds = soup.select('사건종류명')
+        print(nums)
+        if len(nums) == 0:
+            break
+        for k in range(len(nums)):
+            if kinds[k].text == '민사':
+                try:
+                    w = parse.quote(nums[k].text)
+                    print(w)
+                    url = u2 + w
+                    html = REQ.urlopen(url).read()
+                    soup = BeautifulSoup(html, "xml")
+                    print(url)
+                    try:
+                        r = soup.find(res)
+                    except:
+                        continue
+                except:
+                    continue
+                prece_list.append([nums[k].text, r])
 @bp.route('/',  methods=('GET', 'POST'))
 def index():
     return render_template('index.html')
@@ -330,8 +362,17 @@ def productSearch():
     word = request.args.get('word', type=str)
     return jsonify({ "id" : 2, "name" : word})
 
-
-
+@bp.route('/api/homeContents/<string:c>/')
+def generate_home_contents(c):
+    data = []
+    article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
+    a_list = []
+    for i in range(len(article)):
+        a_list.append([article['title'], article['contents'])
+    prece_list = pan_api_three(c)
+    data['article'] = a_list
+    data['precedent'] = prece_list
+    return json.dumps(data, ensure_ascii=False)
 @bp.route('/api/precedent/<string:c1>/<string:c2>')
 def generate_pan_list(c1, c2):
     c_list = ['총칙', '물권', '채권', '친족', '상속']
@@ -744,13 +785,12 @@ def generate_article_list(c1, c2):
 
 kkma = Kkma()
 # 불용어 정의
-stopwords = ['의','가','이','은','들','는','좀','잘','과','도','를','으로','자','에','와','한','하다',
+stopwords = ['의','가','이','은','들','는','좀','잘','과','도','을', '를','으로','자','에','와','한','하다',
              '적극', '소극','여부', '되다', '제', '매', '로', '때', '후', '로', '전', '민법', '방법',
              '경우', '상', '따르다', '있다', '않다', '원심', '및', '법', '에서', '또는', '그', '수', '에게',
              '인지', '해당', '에게', '위', '판결', '조', '인', '위', '사례', '사안', '대하', '되어다'
              '효력', '판단', '청구', '소송', '법원', '제기', '인정', '의미', '요건', '받다', '취지',
              '는지', '관하', '다고']
-
 
 tokenized_data = []
 def tokenize_sentence(sentence):
@@ -932,13 +972,25 @@ def pan():
         nums, documents, contents = [], [], []
         r, label = predict(query)
         q = tokenize_sentence(query)
+        
+        names = ['갑', '을', '병', '정']
 
-        pan = pd.read_csv(pos1 + str(label+1) + '.csv', encoding='CP949')
-        pan2 = pd.read_csv(pos2 + str(label+1) + '.csv', encoding='CP949')
+        pan = pd.read_csv(pos1 + str(label+1) + '_2000.csv', encoding='CP949')
+        pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
 
         nums = list(pan['number'])
         documents = list(pan['contents'])
         contents = list(pan2['contents'])
+        for cont in contents:
+            s = cont.split()
+            for w in s:
+                c = 0
+                for n in names:
+                    if w.find(n) == 0:
+                        c = 1
+                        break
+                if c == 1:
+                    continue
         #nums = [pan['number'][i] for i in range(len(pan)) if pan['label'][i] == label]
         #documents = [pan['contents'][i] for i in range(len(pan)) if pan['label'][i] == label]
         document_embedding_list = get_document_vectors(documents)
