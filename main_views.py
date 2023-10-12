@@ -189,37 +189,41 @@ def pan_api_two(word, n_list, opt):
     return prece_list
 
 def pan_api_three():
-    u1 = ('http://www.law.go.kr/DRF/lawSearch.do?OC=jw01012&search=2&target=prec&type=XML&display=30&page=1')
+    u1 = ('http://www.law.go.kr/DRF/lawSearch.do?OC=jw01012&search=2&target=prec&type=XML&display=10&page=')
     u2 = ('http://www.law.go.kr/DRF/lawService.do?OC=jw01012&type=XML&target=prec&ID=')
     prece_list = []
     w = parse.quote(word)
     t = 1
     res = '사건명'
-    url = u1 + '&query=' + w
-    try:
-        xml = REQ.urlopen(url).read()
-        soup = BeautifulSoup(xml, "lxml-xml")
-        nums = soup.select('판례일련번호')
-        kinds = soup.select('사건종류명')
-        print(nums)
-        if len(nums) == 0:
-            break
-        for k in range(len(nums)):
-            if kinds[k].text == '민사':
-                try:
-                    w = parse.quote(nums[k].text)
-                    print(w)
-                    url = u2 + w
-                    html = REQ.urlopen(url).read()
-                    soup = BeautifulSoup(html, "xml")
-                    print(url)
+    while len(prece_list) < 5:
+        url = u1 + str(t) + '&query=' + w
+        t += 1
+        try:
+            xml = REQ.urlopen(url).read()
+            soup = BeautifulSoup(xml, "lxml-xml")
+            nums = soup.select('판례일련번호')
+            kinds = soup.select('사건종류명')
+            if len(nums) == 0:
+                break
+            for k in range(len(nums)):
+                if kinds[k].text == '민사':
                     try:
-                        r = soup.find(res)
+                        w = parse.quote(nums[k].text)
+                        print(w)
+                        url = u2 + w
+                        html = REQ.urlopen(url).read()
+                        soup = BeautifulSoup(html, "xml")
+                        print(url)
+                        try:
+                            r = soup.find(res)
+                        except:
+                            continue
                     except:
                         continue
-                except:
-                    continue
-                prece_list.append([nums[k].text, r])
+                    prece_list.append([nums[k].text, r])
+        except:
+            continue
+            
 @bp.route('/',  methods=('GET', 'POST'))
 def index():
     return render_template('index.html')
