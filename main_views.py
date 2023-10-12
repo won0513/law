@@ -188,7 +188,7 @@ def pan_api_two(word, n_list, opt):
     print(prece_list)
     return prece_list
 
-def pan_api_three():
+def pan_api_three(word):
     u1 = ('http://www.law.go.kr/DRF/lawSearch.do?OC=jw01012&search=2&target=prec&type=XML&display=10&page=')
     u2 = ('http://www.law.go.kr/DRF/lawService.do?OC=jw01012&type=XML&target=prec&ID=')
     prece_list = []
