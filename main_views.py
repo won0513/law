@@ -1023,7 +1023,7 @@ def pan():
             pan2 = pan2.drop(p)
         pan.index = range(len(pan))
         pan2.index = range(len(pan2))
-        print(len(pan), len(pan2)
+        print(len(pan), len(pan2))
         nums = list(pan['number'])
         documents = list(pan['contents'])
         contents = list(pan2['contents'])
