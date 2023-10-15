@@ -1017,7 +1017,13 @@ def pan():
 
         pan = pd.read_csv(pos1 + str(label+1) + '_2000.csv', encoding='CP949')
         pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
-
+        for p in range(len(p_obj)):
+          if len(pan['contents'][p]) <20:  
+            pan = pan.drop(p)
+            pan2 = pan2.drop(p)
+        pan.index = range(len(pan))
+        pan2.index = range(len(pan2))
+        print(len(pan), len(pan2)
         nums = list(pan['number'])
         documents = list(pan['contents'])
         contents = list(pan2['contents'])
@@ -1034,8 +1040,10 @@ def pan():
         #nums = [pan['number'][i] for i in range(len(pan)) if pan['label'][i] == label]
         #documents = [pan['contents'][i] for i in range(len(pan)) if pan['label'][i] == label]
         document_embedding_list = get_document_vectors(documents)
+        
+        print(len(document_embedding_list))
         f2v_q = get_document_vectors([newQ])
-        sim_scores = [[nums[i], contents[i], cosine_similarity(f2v_q, [document_embedding_list[i]])] for i in
+        sim_scores = [[nums[i], contents[i], cosine_similarity(f2v_q, [document_embedding_list[i]]), i] for i in
                   range(len(document_embedding_list))]
         sim_scores.sort(key=lambda x: x[2], reverse=True) #sim_scores의 각 리스트 중 세번째 요소를 정렬 기준으로.
         sim_scores = sim_scores[:5]
