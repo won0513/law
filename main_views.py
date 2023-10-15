@@ -970,8 +970,8 @@ def pan():
     r = 0
     label = 0
     t1, t2 = 0, 0
-    pos1 = '/var/www/myapp/src/law/pan/pansix_'
-    pos2 = '/var/www/myapp/src/law/pan/pansio_'
+    pos1 = '/var/www/myapp/src/law/pan/pansio_'
+    pos2 = '/var/www/myapp/src/law/pan/pansix_'
     u = "https://www.law.go.kr/DRF/lawService.do?OC=jw01012&target=lstrmRlt&query="
     pan_list = []
     if request.method == 'POST':
