@@ -1034,7 +1034,7 @@ def pan():
         #nums = [pan['number'][i] for i in range(len(pan)) if pan['label'][i] == label]
         #documents = [pan['contents'][i] for i in range(len(pan)) if pan['label'][i] == label]
         document_embedding_list = get_document_vectors(documents)
-        f2v_q = get_document_vectors([new_Q])
+        f2v_q = get_document_vectors([newQ])
         sim_scores = [[nums[i], contents[i], cosine_similarity(f2v_q, [document_embedding_list[i]])] for i in
                   range(len(document_embedding_list))]
         sim_scores.sort(key=lambda x: x[2], reverse=True) #sim_scores의 각 리스트 중 세번째 요소를 정렬 기준으로.
