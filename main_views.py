@@ -786,28 +786,30 @@ def generate_article_list(c1, c2):
 
 
 
-
-
-
 kkma = Kkma()
 # 불용어 정의
-stopwords = ['의','가','이','은','들','는','좀','잘','과','도','을', '를','으로','자','에','와','한','하다',
+stopwords = ['의','가','이','은','들','는','좀','잘','과','도','를','으로','자','에','와','한','하다',
              '적극', '소극','여부', '되다', '제', '매', '로', '때', '후', '로', '전', '민법', '방법',
              '경우', '상', '따르다', '있다', '않다', '원심', '및', '법', '에서', '또는', '그', '수', '에게',
              '인지', '해당', '에게', '위', '판결', '조', '인', '위', '사례', '사안', '대하', '되어다'
              '효력', '판단', '청구', '소송', '법원', '제기', '인정', '의미', '요건', '받다', '취지',
              '는지', '관하', '다고']
 
+
 tokenized_data = []
 def tokenize_sentence(sentence):
-    tokenized_sentence = kkma.morphs(sentence) # 토큰화
-    stopwords_removed_sentence = [word for word in tokenized_sentence if not word in stopwords] # 불용어 제거
-    l = ''
+    #tokenized_sentence = kkma.morphs(sentence) # 토큰화
+    tokenized_sentence = kkma.pos(sentence)
+    print(tokenized_sentence)
+    stopwords_removed_sentence = [word for word in tokenized_sentence if not word[0] in stopwords] # 불용어 제거
+    l = []
     for s in stopwords_removed_sentence:
-      s = re.sub(r"[^가-힣\s]", " ", s)
-      s = re.sub("\s\s+", " ", s)
-      l += s +' '
+      #s[0] = re.sub(r"[^가-힣\s]", " ", s[0])
+      #s[0] = re.sub("\s\s+", " ", s[0])
+      l.append(s)
+    print(l)
     return l
+
 
 
 
@@ -970,6 +972,7 @@ def pan():
     t1, t2 = 0, 0
     pos1 = '/var/www/myapp/src/law/pan/pansix_'
     pos2 = '/var/www/myapp/src/law/pan/pansio_'
+    u = "https://www.law.go.kr/DRF/lawService.do?OC=jw01012&target=lstrmRlt&query="
     pan_list = []
     if request.method == 'POST':
         query = request.form['input']
@@ -978,8 +981,39 @@ def pan():
         nums, documents, contents = [], [], []
         r, label = predict(query)
         q = tokenize_sentence(query)
+        newQ = ''
+        for tq in q:    
+            if tq[1] != 'NNG':
+          newQ += tq[0] + ' '
+          print(newQ)
+          continue
+        tq = tq[0]
+        a = '' #추가할 단어 저장
+        tq = tq.replace('▁', '')
+        url = u + parse.quote(tq)
+        print(url)
+        try:
+          html = REQ.urlopen(url).read()
+          soup = BeautifulSoup(html, "lxml-xml")
+          try:
+            wList1 = soup.select('용어관계')
+            wList2 = soup.select('법령용어명')
+            print(wList1, wList2)
+            t = 0
+            for k in range(len(wList1)):
+              if (wList1[k].text == '동의어'):
+                a = wList2[k].text
+                t = 1
+                break
+            if(t == 0):
+              a = tq
+          except:
+            a = tq
+        except:
+            a = tq
+        newQ += a + ' '
         
-        names = ['갑', '을', '병', '정']
+        names = ['갑', '을']
 
         pan = pd.read_csv(pos1 + str(label+1) + '_2000.csv', encoding='CP949')
         pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
@@ -1000,7 +1034,7 @@ def pan():
         #nums = [pan['number'][i] for i in range(len(pan)) if pan['label'][i] == label]
         #documents = [pan['contents'][i] for i in range(len(pan)) if pan['label'][i] == label]
         document_embedding_list = get_document_vectors(documents)
-        f2v_q = get_document_vectors([q])
+        f2v_q = get_document_vectors([new_Q])
         sim_scores = [[nums[i], contents[i], cosine_similarity(f2v_q, [document_embedding_list[i]])] for i in
                   range(len(document_embedding_list))]
         sim_scores.sort(key=lambda x: x[2], reverse=True) #sim_scores의 각 리스트 중 세번째 요소를 정렬 기준으로.
