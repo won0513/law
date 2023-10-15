@@ -1017,7 +1017,7 @@ def pan():
 
         pan = pd.read_csv(pos1 + str(label+1) + '_2000.csv', encoding='CP949')
         pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
-        for p in range(len(p_obj)):
+        for p in range(len(pan)):
           if len(pan['contents'][p]) <20:  
             pan = pan.drop(p)
             pan2 = pan2.drop(p)
