@@ -985,7 +985,6 @@ def pan():
         for tq in q:    
             if tq[1] != 'NNG':
                 newQ += tq[0] + ' '
-                print(newQ)
                 continue
             tq = tq[0]
             a = '' #추가할 단어 저장
@@ -998,7 +997,6 @@ def pan():
               try:
                 wList1 = soup.select('용어관계')
                 wList2 = soup.select('법령용어명')
-                print(wList1, wList2)
                 t = 0
                 for k in range(len(wList1)):
                   if (wList1[k].text == '동의어'):
