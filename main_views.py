@@ -970,7 +970,7 @@ def pan():
     r = 0
     label = 0
     t1, t2 = 0, 0
-    pos1 = '/var/www/myapp/src/law/pan/pansio_'
+    pos1 = '/var/www/myapp/src/law/pan/pansi_'
     pos2 = '/var/www/myapp/src/law/pan/pansix_'
     u = "https://www.law.go.kr/DRF/lawService.do?OC=jw01012&target=lstrmRlt&query="
     pan_list = []
@@ -1013,8 +1013,16 @@ def pan():
         
         names = ['갑', '을']
 
-        pan = pd.read_csv(pos1 + str(label+1) + '_2000.csv', encoding='CP949')
+        pan = pd.read_csv(pos1 + str(label+1) + '_2000_kk.csv', encoding='CP949')
         pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
+        if label == 2:
+            pan = pan.drop(241)
+            pan = pan.drop(2028)
+        elif label == 6:
+            pan = pan.drop(254)
+        elif label == 7:
+            pan = pan.drop(890)
+        pan.index = range(len(pan)
         for p in range(len(pan)):
           if len(pan['contents'][p]) <20:  
             pan = pan.drop(p)
