@@ -1026,7 +1026,7 @@ def pan():
             pan = pan.drop(890)
         pan.index = range(len(pan)
         for p in range(len(pan)):
-          if len(pan['contents'][p]) <20:  
+            if len(pan['contents'][p]) <20:  
             pan = pan.drop(p)
             pan2 = pan2.drop(p)
         pan.index = range(len(pan))
