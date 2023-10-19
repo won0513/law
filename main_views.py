@@ -1017,12 +1017,12 @@ def pan():
         
         pan = pd.read_csv(pos1 + str(label+1) + '_2000_kk.csv', encoding='CP949')
         pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
-        if label == 2:
+        if label == 1:
             pan2 = pan2.drop(241)
             pan2 = pan2.drop(2028)
-        elif label == 6:
+        elif label == 5:
             pan = pan.drop(254)
-        elif label == 7:
+        elif label == 6:
             pan = pan.drop(890)
         pan.index = range(len(pan))
         #for p in range(len(pan)):
