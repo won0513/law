@@ -951,6 +951,8 @@ def get_document_vectors(document_list):
             # 단어 벡터를 모두 더한 벡터의 값을 문서 길이로 나눠준다.
             doc2vec = doc2vec/count
             document_embedding_list.append(doc2vec)
+        else:
+            document_embedding_list.append(None)
 
     # 각 문서에 대한 문서 벡터 리스트를 리턴
     return document_embedding_list
@@ -972,7 +974,7 @@ def pan():
     t1, t2 = 0, 0
     pos1 = '/var/www/myapp/src/law/pan/pansi_'
     pos2 = '/var/www/myapp/src/law/pan/pansix_'
-    u = "https://www.law.go.kr/DRF/lawService.do?OC=jw01012&target=lstrmRlt&query="
+    u = "https://www.law.go.kr/DRF/lawService.do?OC=jw01012&target=dlytrmRlt&query="
     pan_list = []
     if request.method == 'POST':
         query = request.form['input']
@@ -998,7 +1000,7 @@ def pan():
                 wList1 = soup.select('용어관계')
                 wList2 = soup.select('법령용어명')
                 t = 0
-                for k in range(len(wList1)):
+                for k in range(len(wList1[:5])):
                   if (wList1[k].text == '동의어'):
                     a = wList2[k].text
                     t = 1
@@ -1050,7 +1052,7 @@ def pan():
         print(len(document_embedding_list))
         f2v_q = get_document_vectors([newQ])
         sim_scores = [[nums[i], contents[i], cosine_similarity(f2v_q, [document_embedding_list[i]]), i] for i in
-                  range(len(document_embedding_list))]
+                  range(len(document_embedding_list)) if document_embedding_list[i] is not None]
         sim_scores.sort(key=lambda x: x[2], reverse=True) #sim_scores의 각 리스트 중 세번째 요소를 정렬 기준으로.
         sim_scores = sim_scores[:5]
 
