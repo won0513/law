@@ -1024,7 +1024,7 @@ def pan():
             pan = pan.drop(254)
         elif label == 7:
             pan = pan.drop(890)
-        pan.index = range(len(pan)
+        pan.index = range(len(pan))
         for p in range(len(pan)):
             if len(pan['contents'][p]) <20:  
                 pan = pan.drop(p)
