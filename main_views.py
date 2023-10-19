@@ -1012,9 +1012,9 @@ def pan():
             except:
                 a = tq
             newQ += a + ' '
-        
+        print(newQ)
         names = ['갑', '을']
-
+        
         pan = pd.read_csv(pos1 + str(label+1) + '_2000_kk.csv', encoding='CP949')
         pan2 = pd.read_csv(pos2 + str(label+1) + '_2000.csv', encoding='CP949')
         if label == 2:
@@ -1025,10 +1025,10 @@ def pan():
         elif label == 7:
             pan = pan.drop(890)
         pan.index = range(len(pan))
-        for p in range(len(pan)):
-            if len(pan['contents'][p]) <20:  
-                pan = pan.drop(p)
-                pan2 = pan2.drop(p)
+        #for p in range(len(pan)):
+        #    if len(pan['contents'][p]) <20:  
+        #        pan = pan.drop(p)
+        #        pan2 = pan2.drop(p)
         pan.index = range(len(pan))
         pan2.index = range(len(pan2))
         print(len(pan), len(pan2))
