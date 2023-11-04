@@ -19,8 +19,14 @@ from kobert.pytorch_kobert import get_pytorch_kobert_model
 from gensim.models import FastText
 from sklearn.metrics.pairwise import cosine_similarity
 from konlpy.tag import Kkma
-
+import datetime as dt
 import time
+import random
+import mysql.connector
+
+user_name  = 'cyber'
+pass_my = 'cyber'
+host_my = '127.0.0.1'
 bp = Blueprint('main', __name__, url_prefix='/')
 
 
@@ -188,6 +194,43 @@ def pan_api_two(word, n_list, opt):
     print(prece_list)
     return prece_list
 
+def pan_api_three(word):
+    u1 = ('http://www.law.go.kr/DRF/lawSearch.do?OC=jw01012&search=2&target=prec&type=XML&display=10&page=')
+    u2 = ('http://www.law.go.kr/DRF/lawService.do?OC=jw01012&type=XML&target=prec&ID=')
+    prece_list = []
+    w = parse.quote(word)
+    t = 1
+    res = '사건명'
+    while len(prece_list) < 5:
+        url = u1 + str(t) + '&query=' + w
+        t += 1
+        try:
+            xml = REQ.urlopen(url).read()
+            soup = BeautifulSoup(xml, "lxml-xml")
+            nums = soup.select('판례일련번호')
+            kinds = soup.select('사건종류명')
+            if len(nums) == 0:
+                break
+            for k in range(len(nums)):
+                if kinds[k].text == '민사':
+                    try:
+                        w = parse.quote(nums[k].text)
+                        print(w)
+                        url = u2 + w
+                        html = REQ.urlopen(url).read()
+                        soup = BeautifulSoup(html, "xml")
+                        print(url)
+                        try:
+                            r = soup.find(res)
+                        except:
+                            continue
+                    except:
+                        continue
+                    prece_list.append([nums[k].text, r.text])
+        except:
+            continue
+    return prece_list
+            
 @bp.route('/',  methods=('GET', 'POST'))
 def index():
     return render_template('index.html')
@@ -242,7 +285,7 @@ def checkLaw():
     #    lawBookmark.remove(jo)
     session['lawBookmark'] = lawBookmark
     cur.execute("UPDATE Test SET article=? Where id=?", (' '.join(s for s in lawBookmark), userId))
-    con.commit()
+    Bcon.commit()
     con.close()
     return {'isExist': False}
 
@@ -281,9 +324,10 @@ def login():
 ##app 실행 전에 실행됨
 @bp.before_app_request
 def load_logged_in_user():
-    print('app 실행')
-    isLoggedIn = session.get('isLoggedIn')
-    if isLoggedIn is None:
+    #print('app 실행')
+    try:
+        isLoggedIn = session.get('isLoggedIn')
+    except:
         session['isLoggedIn'] = False
     else :
         lawBookmark = session.get('lawBookmark') #민법 조항 즐겨찾기('제nn'형태)
@@ -296,7 +340,7 @@ def load_logged_in_user():
         if rPreceBookmark is None:
             session['rPreceBookmark'] = []
 
-    print(isLoggedIn)
+    #print(isLoggedIn)
 
 
 @bp.route('/api/checkLogin', methods=['GET'])
@@ -330,8 +374,24 @@ def productSearch():
     word = request.args.get('word', type=str)
     return jsonify({ "id" : 2, "name" : word})
 
+@bp.route('/api/homeContents/<string:c>')
+def generate_home_contents(c):
+    data = {}
+    article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
+    a_list = []
+    for i in range(len(article)):
+        a_list.append([article['title'][i], article['contents'][i]])
 
-
+    vNow = dt.datetime.now()
+    d =  vNow.day
+    random.seed(d)
+    print(d)
+    a_list = random.sample(a_list, 3)
+    prece_list = pan_api_three(c)
+    data['article'] = a_list
+    data['precedent'] = prece_list
+    return json.dumps(data, ensure_ascii=False)
+    
 @bp.route('/api/precedent/<string:c1>/<string:c2>')
 def generate_pan_list(c1, c2):
     c_list = ['총칙', '물권', '채권', '친족', '상속']
@@ -385,6 +445,20 @@ def search_index():
     #page = request.form['page']
     opt_list = ['통합검색', '민법', '판례']
     if opt != 3:
+        db_name = 'article'
+        conn = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+        cursor = conn.cursor(prepared=True)
+        sql_l = ['''SELECT * FROM article_1;''', '''SELECT * FROM article_2;''', '''SELECT * FROM article_3;''', '''SELECT * FROM article_4;''', '''SELECT * FROM article_5;''']
+        result = []
+        for sql in sql_l:
+            print(sql)
+            with conn.cursor() as cur:
+               cur.execute(sql)
+               result.extend(cur.fetchall())
+        print(result)
+        conn.close()
         a_list = []
         a_list.append(pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl"))
         a_list.append(pd.read_pickle("/var/www/myapp/src/law/article_2_label.pkl"))
@@ -395,9 +469,9 @@ def search_index():
         article.index = range(len(article))
         article_list = [] #전체 리스트(n개의 new_s로 이루어짐)
         a_list = [] #각 조항을 검색 단어로 분할한 리스트
-        for i in range(len(article)):
+        for i in range(len(result)):
             check = 0 #단어가 있으면 1, 없으면 0
-            a = list(article.loc[i])
+            a = list(result[i])
             for k in range(len(a)-1): #맨 뒤는 레이블이므로 제외해줌.
                 if k == 0:
                     #조항 제목에 해당 단어가 있을 때
@@ -419,7 +493,8 @@ def search_index():
                     else:
                         a_list.append([a[k]])
                 else:
-                    for s in a[k]:
+                    for s in a[k][1:len(a[k])-1].split("',"):
+                        s = s.replace("'", "")
                         if s.find(content) != -1:
                             check = 1
                             s_list = s.split(content)
@@ -436,7 +511,7 @@ def search_index():
                                             new_s.append(content)
                             a_list.append(new_s)
                         else:
-                            a_list.append([s])
+                            a_list.append([s, ' '])
             if check == 1:
                     article_list.append(a_list)
             a_list = []
@@ -541,11 +616,25 @@ def search_article(c):
     a_list.append(pd.read_pickle("/var/www/myapp/src/law/article_5_label.pkl"))
     article = pd.concat(a_list, sort=False)
     article.index = range(len(article))
+    db_name = 'article'
+    conn = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+    cursor = conn.cursor(prepared=True)
+    sql_l = ['''SELECT * FROM article_1;''', '''SELECT * FROM article_2;''', '''SELECT * FROM article_3;''', '''SELECT * FROM article_4;''', '''SELECT * FROM article_5;''']
+    result = []
+    for sql in sql_l:
+        print(sql)
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            result.extend(cur.fetchall())
+    print(result)
+    conn.close()
     article_list = []  # 전체 리스트(n개의 new_s로 이루어짐)
     a_list = []  # 각 조항을 검색 단어로 분할한 리스트
-    for i in range(len(article)):
+    for i in range(len(result)):
         check = 0  # 단어가 있으면 1, 없으면 0
-        a = list(article.loc[i])
+        a = list(result[i])
         for k in range(len(a)-1):
             if k == 0:
                 # 조항 제목에 해당 단어가 있을 때
@@ -568,7 +657,8 @@ def search_article(c):
                 else:  # 해당 단어가 없으면 그냥 제목 저장
                     a_list.append([a[k]])
             else:
-                for s in a[k]:
+                for s in a[k][1:len(a[k])-1].split("',"):
+                    s = s.replace("'", "")
                     if s.find(c) != -1:
                         s_list = s.split(c)
                         new_s = []
@@ -739,9 +829,6 @@ def generate_article_list(c1, c2):
 
 
 
-
-
-
 kkma = Kkma()
 # 불용어 정의
 stopwords = ['의','가','이','은','들','는','좀','잘','과','도','를','으로','자','에','와','한','하다',
@@ -754,14 +841,18 @@ stopwords = ['의','가','이','은','들','는','좀','잘','과','도','를','
 
 tokenized_data = []
 def tokenize_sentence(sentence):
-    tokenized_sentence = kkma.morphs(sentence) # 토큰화
-    stopwords_removed_sentence = [word for word in tokenized_sentence if not word in stopwords] # 불용어 제거
-    l = ''
+    #tokenized_sentence = kkma.morphs(sentence) # 토큰화
+    tokenized_sentence = kkma.pos(sentence)
+    print(tokenized_sentence)
+    stopwords_removed_sentence = [word for word in tokenized_sentence if not word[0] in stopwords] # 불용어 제거
+    l = []
     for s in stopwords_removed_sentence:
-      s = re.sub(r"[^가-힣\s]", " ", s)
-      s = re.sub("\s\s+", " ", s)
-      l += s +' '
+      #s[0] = re.sub(r"[^가-힣\s]", " ", s[0])
+      #s[0] = re.sub("\s\s+", " ", s[0])
+      l.append(s)
+    #print(l)
     return l
+
 
 
 
@@ -886,7 +977,7 @@ def get_document_vectors(document_list):
     for line in document_list:
         doc2vec = None
         count = 0
-        for word in line.split():
+        for word in line[0].split():
             try:
                 w = loaded_model.wv.get_vector(word)
                 count += 1
@@ -903,6 +994,8 @@ def get_document_vectors(document_list):
             # 단어 벡터를 모두 더한 벡터의 값을 문서 길이로 나눠준다.
             doc2vec = doc2vec/count
             document_embedding_list.append(doc2vec)
+        else:
+            document_embedding_list.append(None)
 
     # 각 문서에 대한 문서 벡터 리스트를 리턴
     return document_embedding_list
@@ -918,36 +1011,137 @@ def test():
 
 @bp.route('/api/pan', methods=('GET', 'POST'))
 def pan():
+    print('\n\n\n\n')
     query = 0 ##사용자 입력 문장(없으면 0)
     r = 0
     label = 0
     t1, t2 = 0, 0
-    pos1 = '/var/www/myapp/src/law/pan/panyo_'
-    pos2 = '/var/www/myapp/src/law/pan/panyo_'
+    pos1 = '/var/www/myapp/src/law/pan/pan_summary_'
+    pos2 = '/var/www/myapp/src/law/pan/pan_summary_'
+    u = "https://www.law.go.kr/DRF/lawService.do?OC=jw01012&target=dlytrmRlt&query="
     pan_list = []
     if request.method == 'POST':
         query = request.form['input']
         print(query)
         t1 =time.time()
         nums, documents, contents = [], [], []
-        r, label = predict(query)
         q = tokenize_sentence(query)
-
-        pan = pd.read_pickle(pos2 + str(label+1) + '_kk.pkl')
-        pan2 = pd.read_pickle(pos1 + str(label+1) + '.pkl')
-
-        nums = list(pan['number'])
-        documents = list(pan['contents'])
-        contents = list(pan2['contents'])
+        newQ = ''
+        for tq in q:    
+            if tq[1] != 'NNG':
+                newQ += tq[0] + ' '
+                continue
+            tq = tq[0]
+            a = '' #추가할 단어 저장
+            tq = tq.replace('▁', '')
+            url = u + parse.quote(tq)
+            #print(url)
+            try:
+              html = REQ.urlopen(url).read()
+              soup = BeautifulSoup(html, "lxml-xml")
+              try:
+                wList1 = soup.select('용어관계')
+                wList2 = soup.select('법령용어명')
+                t = 0
+                for k in range(len(wList1[:5])):
+                  if (wList1[k].text == '동의어'):
+                    a = wList2[k].text
+                    t = 1
+                    break
+                if(t == 0):
+                  a = tq
+              except:
+                a = tq
+            except:
+                a = tq
+            newQ += a + ' '
+        print(newQ)
+        if newQ.find('갚') != -1 and newQ.find('빌리') != -1:
+            newQ = newQ.replace('교우', '채무자')
+            newQ = newQ.replace('동료', '채무자')
+        print(newQ)
+        r, label = predict(newQ)
+        db_name = 'pan'
+        cnx = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+        cursor = cnx.cursor()
+        sql = '''SELECT number FROM pan WHERE label = %s;'''
+        cursor.execute(sql, (str(label),))
+        nums = cursor.fetchall()
+        sql = '''SELECT panyo FROM pan WHERE label = %s;'''
+        cursor.execute(sql, (str(label),))
+        contents = cursor.fetchall()
+        sql = '''SELECT pansi FROM pan WHERE label = %s;'''
+        cursor.execute(sql, (str(label), ))
+        documents = cursor.fetchall()
+        sql = '''SELECT * FROM pan WHERE label = %s;'''
+        #c = []
+        #for q in kkma.nouns(newQ):
+        #    isC = 0
+        #    if len(q) > 1:
+        #        for a in c:
+        #            if a[0] == q:
+        #                 isC = 1
+        #        if isC == 0:
+        #            c.append([q, newQ.count(q)])
+        #c.sort(key = lambda x:x[1], reverse = True)
+        #print(c)
+        #c = c[:7]
+        #print(c)
+        #isC = 0
+        #nums = []
+        #contents = []
+        #documents = []
+        #for i in range(len(nums)):
+        #   try:
+        #        isC = 0
+        #        for a in c:
+        #            if documents[i].find(a[0]) != -1:
+        #                isC += 1
+        #            if isC >1:
+        #                break
+        #        if isC > 1:
+        #             nums.pop(i)
+         #            contents,pop(i)
+         #            documents.pop(i)
+         #  except:
+         #      break
+#    nums.append(list(pan['number'])[i])
+#    contents.append(list(pan['contents'])[i])
+#    documents.append(list(pan2['contents'])[i])
+        cnx.close()
+        #pan = pd.read_pickle(pos1 + str(label+1) + '_random_min2_kk.pkl')
+        pan2 = pd.read_pickle(pos2 + str(label+1) + '_random_min.pkl')
+        #if label == 1:
+        #    pan2 = pan2.drop(241)
+        #    pan2 = pan2.drop(2028)
+        #elif label == 5:
+        #    pan = pan.drop(254)
+        #elif label == 6:
+        #    pan = pan.drop(890)
+        #pan.index = range(len(pan))
+        #for p in range(len(pan)):
+        #    if len(pan['contents'][p]) <20:  
+        #        pan = pan.drop(p)
+        #        pan2 = pan2.drop(p)
+        #pan.index = range(len(pan))
+        #pan2.index = range(len(pan2))
+        #print(len(pan), len(pan2))
+        #nums = 
+        #documents = list(pan['contents'])
+        #contents = list(pan2['contents'])
         #nums = [pan['number'][i] for i in range(len(pan)) if pan['label'][i] == label]
         #documents = [pan['contents'][i] for i in range(len(pan)) if pan['label'][i] == label]
         document_embedding_list = get_document_vectors(documents)
-        f2v_q = get_document_vectors([q])
-        sim_scores = [[nums[i], contents[i], cosine_similarity(f2v_q, [document_embedding_list[i]])] for i in
-                  range(len(document_embedding_list))]
+        #print(len(documents))
+        #print(len(document_embedding_list))
+        f2v_q = get_document_vectors([[newQ, 0]])
+        sim_scores = [[nums[i][0], contents[i][0], cosine_similarity(f2v_q, [document_embedding_list[i]]), i] for i in
+                  range(len(document_embedding_list)) if document_embedding_list[i] is not None]
         sim_scores.sort(key=lambda x: x[2], reverse=True) #sim_scores의 각 리스트 중 세번째 요소를 정렬 기준으로.
         sim_scores = sim_scores[:5]
-
+        print(sim_scores)
         for s in sim_scores:
             new_s = s[1].split('<br/>')
             pan_list.append([s[0], new_s])
@@ -961,8 +1155,9 @@ def pan():
     data['query'] = query
     data['pan_list'] = pan_list
     t2 = time.time()
-    print(data)
+    #print(data)
     print('소요시간(초): ', t2-t1)
+    print('\n\n\n\n')
     #return render_template('pan.html', r = r, query=query, pan_list=pan_list)
     return json.dumps(data, ensure_ascii=False)
 
