@@ -396,8 +396,13 @@ def generate_home_contents(c):
     a_list = []
     for r in result:
         contents = r[1].split("',")
-        contents = contents.replace("'", "")
-        a_list.append([r[0], contents])
+        a = []
+        for c in contents:
+            c = c.replace("'", "")
+            c = c.replace("[", "")
+            c = c.replace("]", "")
+            a.append(c)
+        a_list.append([r[0], a])
     random.seed(d)
     print(d)
     a_list = random.sample(a_list, 3)
@@ -833,8 +838,13 @@ def generate_article_list(c1, c2):
     a_list = []
     for r in result:
         contents = r[1].split("',")
-        contents = contents.replace("'", "")
-        a_list.append([r[0], contents])
+        a = []
+        for c in contents:
+            c = c.replace("'", "")
+            c = c.replace("[", "")
+            c = c.replace("]", "")
+            a.append(c)
+        a_list.append([r[0], a])
     page = request.args.get('page', type=int, default=1)  # 페이지
     total = 0
     l = len(a_list)
