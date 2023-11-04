@@ -377,13 +377,27 @@ def productSearch():
 @bp.route('/api/homeContents/<string:c>')
 def generate_home_contents(c):
     data = {}
-    article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
-    a_list = []
-    for i in range(len(article)):
-        a_list.append([article['title'][i], article['contents'][i]])
-
     vNow = dt.datetime.now()
     d =  vNow.day
+    db_name = 'article'
+    conn = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+    cursor = conn.cursor(prepared=True)
+    sql_l = ['''SELECT * FROM article_1;''', '''SELECT * FROM article_2;''', '''SELECT * FROM article_3;''', '''SELECT * FROM article_4;''', '''SELECT * FROM article_5;''']
+    result = []
+    random.seed(d)
+    sql = random.choice(sql_l)
+    print(sql)
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    print(result)
+    conn.close()
+    a_list = []
+    for r in result:
+        contents = r[1].split("',")
+        contents = contents.replace("'", "")
+        a_list.append([r[0], contents])
     random.seed(d)
     print(d)
     a_list = random.sample(a_list, 3)
@@ -810,11 +824,10 @@ def generate_article_list(c1, c2):
     cursor = conn.cursor(prepared=True)
     sql_l = ['''SELECT * FROM article_1 WHERE label = %s;''', '''SELECT * FROM article_2 WHERE label = %s;''', '''SELECT * FROM article_3 WHERE label = %s;''', '''SELECT * FROM article_4 WHERE label = %s;''', '''SELECT * FROM article_5 WHERE label = %s;''']
     result = []
-    sql = cur.execute(sql_l[c_dic[c1]], [str(c2)])
-    print(sql)        
-    with conn.cursor() as cur:
-        cur.execute(sql)
-        result.extend(cur.fetchall())
+    sql = sql_l[c_dic[c1]]
+    cursor.execute(sql, [str(c2)])
+    print(sql)
+    result = cursor.fetchall()
     print(result)
     conn.close()
     a_list = []
