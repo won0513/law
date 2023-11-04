@@ -802,11 +802,26 @@ def generate_article_list(c1, c2):
                 '현상광고', '위임', '임치', '조합', '종신정기금', '화해', '사무관리', '부당이득', '불법행위'],
                 '친족' : ['총칙', '가족의 범위와 자의 성과 본', '혼인', '친생자', '양자', '친권', '후견', '부양'],
                 '상속' : ['상속', '유언', '유류분']}
-    article = pd.read_pickle(s)
+    
+    db_name = 'article'
+    conn = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+    cursor = conn.cursor(prepared=True)
+    sql_l = ['''SELECT * FROM article_1 WHERE label = %s;''', '''SELECT * FROM article_2 WHERE label = %s;''', '''SELECT * FROM article_3 WHERE label = %s;''', '''SELECT * FROM article_4 WHERE label = %s;''', '''SELECT * FROM article_5 WHERE label = %s;''']
+    result = []
+    sql = cur.execute(sql_l[c_dic[c1]], [str(c2)])
+    print(sql)        
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        result.extend(cur.fetchall())
+    print(result)
+    conn.close()
     a_list = []
-    for i in range(len(article)):
-        if article['label'][i] == c2:
-            a_list.append([article['title'][i], article['contents'][i]])
+    for r in result:
+        contents = r[1].split("',")
+        contents = contents.replace("'", "")
+        a_list.append([r[0], contents])
     page = request.args.get('page', type=int, default=1)  # 페이지
     total = 0
     l = len(a_list)
