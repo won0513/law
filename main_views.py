@@ -198,7 +198,7 @@ def pan_api_three(word):
     u1 = ('http://www.law.go.kr/DRF/lawSearch.do?OC=jw01012&search=2&target=prec&type=XML&display=10&page=')
     u2 = ('http://www.law.go.kr/DRF/lawService.do?OC=jw01012&type=XML&target=prec&ID=')
     prece_list = []
-    w = parse.quote(word)
+    w = parse.quote('소유')
     t = 1
     res = '사건명'
     while len(prece_list) < 5:
@@ -210,7 +210,7 @@ def pan_api_three(word):
             nums = soup.select('판례일련번호')
             kinds = soup.select('사건종류명')
             if len(nums) == 0:
-                break
+                continue
             for k in range(len(nums)):
                 if kinds[k].text == '민사':
                     try:
@@ -227,10 +227,12 @@ def pan_api_three(word):
                     except:
                         continue
                     prece_list.append([nums[k].text, r.text])
+                if len(prece_list) == 5:
+                     break
         except:
             continue
     return prece_list
-            
+
 @bp.route('/',  methods=('GET', 'POST'))
 def index():
     return render_template('index.html')
@@ -377,19 +379,39 @@ def productSearch():
 @bp.route('/api/homeContents/<string:c>')
 def generate_home_contents(c):
     data = {}
-    article = pd.read_pickle("/var/www/myapp/src/law/article_1_label.pkl")[:5]
-    a_list = []
-    for i in range(len(article)):
-        a_list.append([article['title'][i], article['contents'][i]])
-
     vNow = dt.datetime.now()
     d =  vNow.day
+    db_name = 'article'
+    conn = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+    cursor = conn.cursor(prepared=True)
+    sql_l = ['''SELECT * FROM article_1;''', '''SELECT * FROM article_2;''', '''SELECT * FROM article_3;''', '''SELECT * FROM article_4;''', '''SELECT * FROM article_5;''']
+    result = []
+    random.seed(d)
+    sql = random.choice(sql_l)
+    print(sql)
+    cursor.execute(sql)
+    result = cursor.fetchall()
+    print(result)
+    conn.close()
+    a_list = []
+    for r in result:
+        contents = r[1].split("',")
+        a = []
+        for c in contents:
+            c = c.replace("'", "")
+            c = c.replace("[", "")
+            c = c.replace("]", "")
+            a.append(c)
+        a_list.append([r[0], a])
     random.seed(d)
     print(d)
     a_list = random.sample(a_list, 3)
     prece_list = pan_api_three(c)
     data['article'] = a_list
     data['precedent'] = prece_list
+    print(prece_list)
     return json.dumps(data, ensure_ascii=False)
     
 @bp.route('/api/precedent/<string:c1>/<string:c2>')
@@ -793,7 +815,7 @@ def show_precedent(num):
     return json.dumps(data, ensure_ascii=False)
 @bp.route('/api/article/<string:c1>/<int:c2>')
 def generate_article_list(c1, c2):
-    c_dic = {'총칙': 1, '물권': 2, '채권': 3, '친족': 4, '상속': 5} #파일 이름을 지정하기 위한 딕셔너리.
+    c_dic = {'총칙': 0, '물권': 1, '채권': 2, '친족': 3, '상속': 4} #파일 이름을 지정하기 위한 딕셔너리.
     s = '/var/www/myapp/src/law/article_' + str(c_dic[c1]) + '_label.pkl'
     hcnList = ['총칙', '물권', '채권', '친족', '상속']
     lcnList = {'총칙': ['통칙', '인', '법인', '물건', '법률행위', '기간', '소멸시효'],
@@ -802,11 +824,30 @@ def generate_article_list(c1, c2):
                 '현상광고', '위임', '임치', '조합', '종신정기금', '화해', '사무관리', '부당이득', '불법행위'],
                 '친족' : ['총칙', '가족의 범위와 자의 성과 본', '혼인', '친생자', '양자', '친권', '후견', '부양'],
                 '상속' : ['상속', '유언', '유류분']}
-    article = pd.read_pickle(s)
+    
+    db_name = 'article'
+    conn = mysql.connector.connect(user=f'{user_name}', password=f'{pass_my}',
+                              host=f'{host_my}',
+                              database=f'{db_name}')
+    cursor = conn.cursor(prepared=True)
+    sql_l = ['''SELECT * FROM article_1 WHERE label = %s;''', '''SELECT * FROM article_2 WHERE label = %s;''', '''SELECT * FROM article_3 WHERE label = %s;''', '''SELECT * FROM article_4 WHERE label = %s;''', '''SELECT * FROM article_5 WHERE label = %s;''']
+    result = []
+    sql = sql_l[c_dic[c1]]
+    cursor.execute(sql, [str(c2)])
+    print(sql)
+    result = cursor.fetchall()
+    print(result)
+    conn.close()
     a_list = []
-    for i in range(len(article)):
-        if article['label'][i] == c2:
-            a_list.append([article['title'][i], article['contents'][i]])
+    for r in result:
+        contents = r[1].split("',")
+        a = []
+        for c in contents:
+            c = c.replace("'", "")
+            c = c.replace("[", "")
+            c = c.replace("]", "")
+            a.append(c)
+        a_list.append([r[0], a])
     page = request.args.get('page', type=int, default=1)  # 페이지
     total = 0
     l = len(a_list)
