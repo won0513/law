@@ -63,7 +63,7 @@ def pan_api(word, opt):
         print(url)
         try:
             xml = REQ.urlopen(url).read()
-            soup = BeautifulSoup(xml, "lxml-xml")
+            soup = BeautifulSoup(xml, "xml")
             nums = soup.select('판례일련번호')
             kinds = soup.select('사건종류명')
             print(nums)
@@ -75,8 +75,8 @@ def pan_api(word, opt):
                         w = parse.quote(nums[k].text)
                         print(w)
                         url = u2 + w
-                        html = REQ.urlopen(url).read()
-                        soup = BeautifulSoup(html, "xml")
+                        xml = REQ.urlopen(url).read()
+                        soup = BeautifulSoup(xml, "xml")
                         print(url)
                         try:
                                 r = soup.find(res)
